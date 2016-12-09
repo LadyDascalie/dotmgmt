@@ -21,3 +21,5 @@ dotmgmt -park
 
 Done. Your symlinks have been removed, and the original files have not been touched.
 
+
+![https://i.imgur.com/CFaiApr.png](https://i.imgur.com/CFaiApr.png)
