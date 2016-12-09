@@ -55,7 +55,7 @@ func park(list []os.FileInfo) {
 	defer fmt.Println("____")
 	for _, v := range list {
 		newPath := filepath.Join(usr.HomeDir, v.Name())
-		fmt.Println("Symlinking", color.RedString("%s", newPath))
+		fmt.Println("Removing", color.RedString("%s", newPath))
 		err := unix.Unlink(newPath)
 		if err != nil {
 			fmt.Println(err)
