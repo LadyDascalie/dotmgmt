@@ -11,7 +11,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var DotFilesPath string
+var dotFilesPath string
 var shouldPark bool
 
 var usr *user.User
@@ -25,7 +25,7 @@ func init() {
 }
 
 func main() {
-	flag.StringVar(&DotFilesPath, "p", ".", "dotmgmt -p /path/to/dir")
+	flag.StringVar(&dotFilesPath, "p", ".", "dotmgmt -p /path/to/dir")
 	flag.BoolVar(&shouldPark, "park", false, "dotmgmt --park")
 	flag.Parse()
 
@@ -40,7 +40,7 @@ func main() {
 }
 
 func getFiles() []os.FileInfo {
-	list, err := ioutil.ReadDir(DotFilesPath)
+	list, err := ioutil.ReadDir(dotFilesPath)
 	if err != nil {
 		panic(err)
 	}
