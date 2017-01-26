@@ -1,17 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
-	"time"
-
 	"github.com/fatih/color"
-	"github.com/ladydascalie/dotmgmt/managers"
 	"golang.org/x/sys/unix"
 )
 
@@ -41,32 +37,25 @@ func main() {
 
 	safetyCheck()
 
-	var conf managers.Config
-	conf.New() // Create a new config object
-	// if the config files doesn't exist, create it
-	if !conf.Exists() {
-		conf.MakeFile()
-	}
-
 	// move and symlink the file
 	if shouldMake != "" {
-		moveAndSymlink(&conf)
+		moveAndSymlink()
 		return
 	}
 
 	if shouldRemove != "" {
-		undoSymlink(&conf)
+		undoSymlink()
 		return
 	}
 
 	list := getFiles()
 
 	if shouldReset {
-		removeSymlink(list, &conf)
+		removeSymlink(list)
 		return
 	}
 
-	makeSymlinks(list, &conf)
+	makeSymlinks(list)
 }
 
 // make sure we aren't going to break things
@@ -101,7 +90,7 @@ func getFiles() []os.FileInfo {
 	return list
 }
 
-func moveAndSymlink(conf *managers.Config) {
+func moveAndSymlink() {
 	var list []os.FileInfo
 
 	file := store(shouldMake)
@@ -113,10 +102,10 @@ func moveAndSymlink(conf *managers.Config) {
 	}
 	list = append(list, i)
 
-	makeSymlinks(list, conf)
+	makeSymlinks(list)
 }
 
-func undoSymlink(conf *managers.Config) {
+func undoSymlink() {
 	var list []os.FileInfo
 
 	fname := filepath.Join(dotFilesPath, filepath.Base(shouldRemove))
@@ -128,7 +117,7 @@ func undoSymlink(conf *managers.Config) {
 	}
 	list = append(list, i)
 
-	removeSymlink(list, conf)
+	removeSymlink(list)
 }
 
 func derive(fname string) string {
@@ -156,21 +145,11 @@ func store(fname string) (newname string) {
 }
 
 // removeSymlink removes the symlinks from the user's home folder
-func removeSymlink(list []os.FileInfo, conf *managers.Config) {
+func removeSymlink(list []os.FileInfo) {
 	// Notify user and defer closing statement
 	color.Green("%s", "Removing Symlinks...")
 	fmt.Println("____")
 	defer fmt.Println("____")
-
-	// Load the config file into memory
-	var sc managers.SymlinkCollection
-	config, err := ioutil.ReadFile(conf.Path)
-	if err != nil {
-		color.Red("Could not read config file")
-		os.Exit(1)
-	}
-
-	json.Unmarshal(config, &sc)
 
 	// Iterate over files...
 	for _, v := range list {
@@ -185,54 +164,26 @@ func removeSymlink(list []os.FileInfo, conf *managers.Config) {
 				os.Exit(1)
 			}
 
-			cp := sc.Symlinks
-			for k, v := range sc.Symlinks {
-				if v.Destination == newPath {
-					cp = append(cp[:k], cp[k + 1:]...)
-				}
-			}
-
-			sc.Symlinks = cp
 		}
 	}
-	sc.Timestamp = time.Now().Format(time.RFC3339)
-	sc.Save(conf)
 }
 
-func makeSymlinks(list []os.FileInfo, conf *managers.Config) {
+func makeSymlinks(list []os.FileInfo) {
 	// Symlink the files
 	color.Green("%s", "Creating symlinks...")
 	fmt.Println("____")
 	defer fmt.Println("____")
 
-	// Load the config file into memory
-	var sc managers.SymlinkCollection
-	config, err := ioutil.ReadFile(conf.Path)
-	if err != nil {
-		color.Red("Could not read config file")
-		os.Exit(1)
-	}
-
-	json.Unmarshal(config, &sc)
 	for _, v := range list {
 		oldPath := filepath.Join(getPwd(), v.Name())
 		newPath := filepath.Join(usr.HomeDir, v.Name())
-
-		s := managers.Symlink{
-			Destination: newPath,
-			Origin:      oldPath,
-		}
 
 		fmt.Println("Symlinking", color.RedString("%s", oldPath), color.BlueString("%s", "=>"), color.GreenString("%s", newPath))
 		err := os.Symlink(oldPath, newPath)
 		if err != nil {
 			fmt.Println(err)
 		}
-
-		sc.Symlinks = append(sc.Symlinks, s)
 	}
-	sc.Timestamp = time.Now().Format(time.RFC3339)
-	sc.Save(conf)
 }
 
 func getPwd() string {
