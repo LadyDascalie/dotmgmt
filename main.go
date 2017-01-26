@@ -94,7 +94,8 @@ func safetyCheck() {
 func getFiles() []os.FileInfo {
 	list, err := ioutil.ReadDir(derive(dotFilesPath))
 	if err != nil {
-		panic(err)
+		color.Red("Could not get list of files")
+		os.Exit(1)
 	}
 
 	return list
@@ -107,7 +108,8 @@ func moveAndSymlink(conf *managers.Config) {
 	i, err := os.Stat(file)
 
 	if err != nil {
-		panic(err)
+		color.Red("No such file or directory")
+		os.Exit(1)
 	}
 	list = append(list, i)
 
@@ -121,7 +123,8 @@ func undoSymlink(conf *managers.Config) {
 
 	i, err := os.Stat(fname)
 	if err != nil {
-		panic(err)
+		color.Red("No such file or directory")
+		os.Exit(1)
 	}
 	list = append(list, i)
 
@@ -132,7 +135,8 @@ func derive(fname string) string {
 	var err error
 	fname, err = filepath.Abs(fname)
 	if err != nil {
-		panic(err)
+		color.Red("Could not derive path for file %s", fname)
+		os.Exit(1)
 	}
 
 	return fname
@@ -144,7 +148,8 @@ func store(fname string) (newname string) {
 
 	err := os.Rename(oldname, newname)
 	if err != nil {
-		fmt.Println(err)
+		color.Red("Could nor rename file")
+		os.Exit(1)
 	}
 
 	return newname
@@ -161,7 +166,8 @@ func removeSymlink(list []os.FileInfo, conf *managers.Config) {
 	var sc managers.SymlinkCollection
 	config, err := ioutil.ReadFile(conf.Path)
 	if err != nil {
-		panic(err)
+		color.Red("Could not read config file")
+		os.Exit(1)
 	}
 
 	json.Unmarshal(config, &sc)
@@ -178,13 +184,13 @@ func removeSymlink(list []os.FileInfo, conf *managers.Config) {
 				fmt.Println(newPath, err)
 			}
 
-			// refer to https://github.com/golang/go/wiki/SliceTricks#filtering-without-allocating
-			cp := sc.Symlinks[:0]
-			for _, x := range sc.Symlinks {
-				if x.Destination == oldPath {
-					cp = append(cp, x)
+			cp := sc.Symlinks
+			for k, v := range sc.Symlinks {
+				if v.Destination == newPath {
+					cp = append(cp[:k], cp[k + 1:]...)
 				}
 			}
+
 			sc.Symlinks = cp
 		}
 	}
@@ -198,7 +204,15 @@ func makeSymlinks(list []os.FileInfo, conf *managers.Config) {
 	fmt.Println("____")
 	defer fmt.Println("____")
 
+	// Load the config file into memory
 	var sc managers.SymlinkCollection
+	config, err := ioutil.ReadFile(conf.Path)
+	if err != nil {
+		color.Red("Could not read config file")
+		os.Exit(1)
+	}
+
+	json.Unmarshal(config, &sc)
 	for _, v := range list {
 		oldPath := filepath.Join(getPwd(), v.Name())
 		newPath := filepath.Join(usr.HomeDir, v.Name())
@@ -223,7 +237,8 @@ func makeSymlinks(list []os.FileInfo, conf *managers.Config) {
 func getPwd() string {
 	pwd, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		color.Red("Could not get current working directory path")
+		os.Exit(1)
 	}
 	return pwd
 }
