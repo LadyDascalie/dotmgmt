@@ -182,6 +182,7 @@ func removeSymlink(list []os.FileInfo, conf *managers.Config) {
 			err := unix.Unlink(newPath)
 			if err != nil {
 				fmt.Println(newPath, err)
+				os.Exit(1)
 			}
 
 			cp := sc.Symlinks
