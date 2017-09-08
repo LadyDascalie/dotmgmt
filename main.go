@@ -7,12 +7,12 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+
 	"github.com/fatih/color"
 	"golang.org/x/sys/unix"
 )
 
-var
-(
+var (
 	dotFilesPath string
 	shouldMake   string // the file that should be made
 	shouldRemove string // the file that should be removed
@@ -61,12 +61,14 @@ func main() {
 // make sure we aren't going to break things
 func safetyCheck() {
 	pwd := getPwd()
-	danger := []string{"/", "/home",
-			   "/usr", "/usr/bin", "/usr/local/bin",
-			   "/etc", "/private/etc",
-			   "/tmp", "/private/tmp",
-			   "/var", "/private/var",
-			   "/sbin", "/private"}
+	danger := []string{
+		"/", "/home",
+		"/usr", "/usr/bin", "/usr/local/bin",
+		"/etc", "/private/etc",
+		"/tmp", "/private/tmp",
+		"/var", "/private/var",
+		"/sbin", "/private",
+	}
 
 	for _, p := range danger {
 		if pwd == p {
@@ -85,6 +87,14 @@ func getFiles() []os.FileInfo {
 	if err != nil {
 		color.Red("Could not get list of files")
 		os.Exit(1)
+	}
+
+	// filter out .git and .gitignore
+	for k, f := range list {
+		if f.Name() == ".git" || f.Name() == ".gitignore" {
+			list[k] = list[len(list)-1]
+			list = list[:len(list)-1]
+		}
 	}
 
 	return list
